@@ -7,6 +7,10 @@
 
 model Intersection
 
+
+/**
+ * Basic environment representing a real size pad.
+ */
 global{
 	geometry shape <- square(56#cm);
 	
@@ -22,17 +26,23 @@ global{
 }
 
 
+
+
+/**
+ * Toio robot that moves in the pad. Real sized
+ */
 species toio skills:[moving]{
+	
+	//Food it wants to eat
+	
 	point target;
 	init{
 		speed <- 0.01;
 	}
 	
 	
-	aspect body{
-		draw square(3#cm) color: #blue;
-	}
-	
+
+	//Moves in the direction of the target food
 	reflex move{
 		if (target = nil){
 			ask food{
@@ -44,6 +54,8 @@ species toio skills:[moving]{
 		}
 	}
 	
+	
+	//Eats the food once both agents are in the same position
 	reflex eat{
 		ask food{
 			if (myself.location = self.location){
@@ -55,8 +67,15 @@ species toio skills:[moving]{
 			}
 		}
 	}
+	
+	//Regular square with triangle representing the direction at which it is facing
+	aspect body{
+		draw square(3#cm) color: #blue rotate: heading;
+		draw triangle(1#cm) rotate:90 + heading color: #red;
+	}
 }
 
+//Food that serves as a target for the tooit to move to its location
 species food{
 	bool eaten <- false;
 	
@@ -67,7 +86,7 @@ species food{
 	}
 	
 	aspect{
-		draw circle(1#cm) color: #red;
+		draw circle(0.5#cm) color: #red;
 	}
 }
 
@@ -75,7 +94,7 @@ species food{
 experiment simple_movement type:gui{
 	float minimum_cycle_duration <- 0.05;
 	output{
-		display view{
+		display view type:opengl{
 			species toio aspect: body;
 			species food aspect: default;
 		}
