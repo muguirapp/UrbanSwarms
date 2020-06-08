@@ -12,81 +12,69 @@ model Intersection
  * Basic environment representing a real size pad.
  */
 global{
-	geometry shape <- square(56#cm);
+	//For UDP communication with Processing App
+	int port <- 6000;
+	string url <- "localhost";
+	graph the_graph;
 	
+	
+	file roads_shapefile <- file("../includes/Intersection.shp");
+	geometry shape <- envelope(roads_shapefile);
 	point center <- shape.centroid;
+	
+	
 	init{
 		create toio number: 1{
 			location <- center;
+			//do connect to: url protocol: "udp_emitter" port: port ;
 		}
-		create food number:1{
-			location <- any_location_in(shape);
-		}	
+		create road from: roads_shapefile;
+		the_graph <- as_edge_graph(road);
 	}
+	
 }
 
 
-
+species road  {
+	rgb color <- #red ;
+	aspect base {
+		draw shape color: color ;
+	}
+}
 
 /**
  * Toio robot that moves in the pad. Real sized
  */
-species toio skills:[moving]{
+species toio skills:[moving, network]{
 	
 	//Food it wants to eat
 	
 	point target;
 	init{
-		speed <- 0.01;
+		speed <- 2.0;
 	}
 	
+	//Communication test
+	//reflex fetch when:has_more_message(){	
+	//	loop while:has_more_message()
+	//	{
+	//		message s <- fetch_message();
+	//		list coordinates <- string(s.contents) split_with(";");
+	//		//location <- {int(coordinates[0]),int(coordinates[1])};
+	//	}
+	//}
 	
 
-	//Moves in the direction of the target food
 	reflex move{
-		if (target = nil){
-			ask food{
-				myself.target <- self.location;
-			}
-		}
-		else{
-			do goto target:target;
-		}
+		do wander on: the_graph;
 	}
+
 	
-	
-	//Eats the food once both agents are in the same position
-	reflex eat{
-		ask food{
-			if (myself.location = self.location){
-				self.eaten <- true;
-				myself.target <- nil;
-				create food number: 1{
-					location <- any_location_in(shape);
-				}
-			}
-		}
-	}
 	
 	//Regular square with triangle representing the direction at which it is facing
 	aspect body{
-		draw square(3#cm) color: #blue rotate: heading;
-		draw triangle(1#cm) rotate:90 + heading color: #red;
-	}
-}
-
-//Food that serves as a target for the tooit to move to its location
-species food{
-	bool eaten <- false;
-	
-	reflex disappear{
-		if eaten{
-			do die;
-		}
-	}
-	
-	aspect{
-		draw circle(0.5#cm) color: #red;
+		draw square(11) color: #blue rotate: heading;
+		draw triangle(1) rotate:90 + heading color: #red;
 	}
 }
 
@@ -95,8 +83,11 @@ experiment simple_movement type:gui{
 	float minimum_cycle_duration <- 0.05;
 	output{
 		display view type:opengl{
+			
+			//There is a bug with the image not shwoing the toio all the time. FIX!!!
+			image "../includes/Roads.png";
 			species toio aspect: body;
-			species food aspect: default;
+			species road aspect: base;
 		}
 	}
 }
